@@ -8,9 +8,15 @@ public class PlayerInteractions : MonoBehaviour
     public Camera playerCamera;
     public CrosshairUI crosshairUIScript;
     public Transform holdPoint;
-    //public KeyCode pickupKey = KeyCode.E;
     private GameObject heldObject;
     private Rigidbody heldObjectRb;
+
+    // now to throw object
+    private bool isChargingThrow = false; // if player is holding E
+    private float throwChargeTime = 0f; // the PEAK mechanic
+
+    public float maxThrowForce = 20f; // limit of the throw distance
+    public float chargeSpeed = 1f; // how fast meter fills
 
     void Update()
     {
@@ -31,19 +37,7 @@ public class PlayerInteractions : MonoBehaviour
                     if (heldObject == null)
                     {
                         PickUpObject(hit.collider.gameObject);
-                    }
-                    else
-                    {
-                        // Unparent
-                        heldObject.transform.SetParent(null);
-
-                        // Re-enable physics
-                        heldObjectRb.isKinematic = false;
-                        heldObjectRb.useGravity = true;
-
-                        heldObject = null;
-                        heldObjectRb = null;
-                    }
+                    }                    
 
                 }
 
@@ -53,20 +47,36 @@ public class PlayerInteractions : MonoBehaviour
             }
         }
         crosshairUIScript.SetInteract(false);
-        if (Keyboard.current.eKey.wasPressedThisFrame)
+
+        if (heldObject != null)
         {
-            if (heldObject != null)
+            if (Keyboard.current.qKey.wasPressedThisFrame)
             {
-                heldObject.transform.SetParent(null);
+                /*heldObject.transform.SetParent(null);
 
                 // Re-enable physics
                 heldObjectRb.isKinematic = false;
                 heldObjectRb.useGravity = true;
 
                 heldObject = null;
-                heldObjectRb = null;
+                heldObjectRb = null;*/
+                isChargingThrow = true;
+                throwChargeTime = 0f;
+            }
+            if (Keyboard.current.qKey.isPressed)
+            {
+                isChargingThrow = true;
+                throwChargeTime += Time.deltaTime * chargeSpeed;
+
+                // Clamp to max 1.0 (normalized)
+                throwChargeTime = Mathf.Clamp01(throwChargeTime);
+            }
+            if (Keyboard.current.qKey.wasReleasedThisFrame && heldObject != null)
+            {
+                ThrowHeldObject();
             }
         }
+        
 
 
 
@@ -87,5 +97,25 @@ public class PlayerInteractions : MonoBehaviour
         heldObject.transform.localPosition = Vector3.zero;
         heldObject.transform.localRotation = Quaternion.identity;
     }
+    void ThrowHeldObject()
+    {
+        // Unparent object
+        heldObject.transform.SetParent(null);
 
+        // Re-enable physics
+        heldObjectRb.isKinematic = false;
+        heldObjectRb.useGravity = true;
+
+        // Calculate force
+        float finalForce = throwChargeTime * maxThrowForce;
+
+        // Apply force in camera forward direction
+        heldObjectRb.AddForce(playerCamera.transform.forward * finalForce, ForceMode.Impulse);
+
+        // Reset states
+        heldObject = null;
+        heldObjectRb = null;
+        isChargingThrow = false;
+        throwChargeTime = 0f;
+    }
 }
