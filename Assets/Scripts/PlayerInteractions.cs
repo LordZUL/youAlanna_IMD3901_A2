@@ -18,6 +18,10 @@ public class PlayerInteractions : MonoBehaviour
     public float maxThrowForce = 20f; // limit of the throw distance
     public float chargeSpeed = 1f; // how fast meter fills
 
+    // sound when throwing
+    public AudioSource audioSource;
+    public AudioClip throwSound;
+
     void Update()
     {
         Ray ray = new Ray(playerCamera.transform.position, playerCamera.transform.forward);
@@ -71,7 +75,7 @@ public class PlayerInteractions : MonoBehaviour
                 // Clamp to max 1.0 (normalized)
                 throwChargeTime = Mathf.Clamp01(throwChargeTime);
             }
-            if (Keyboard.current.qKey.wasReleasedThisFrame && heldObject != null)
+            if (Keyboard.current.qKey.wasReleasedThisFrame)
             {
                 ThrowHeldObject();
             }
@@ -111,6 +115,11 @@ public class PlayerInteractions : MonoBehaviour
 
         // Apply force in camera forward direction
         heldObjectRb.AddForce(playerCamera.transform.forward * finalForce, ForceMode.Impulse);
+
+        if (audioSource != null && throwSound != null)
+        {
+            audioSource.PlayOneShot(throwSound);
+        }
 
         // Reset states
         heldObject = null;
